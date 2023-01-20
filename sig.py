@@ -1,12 +1,10 @@
-import time
 import hmac
 import hashlib
 
-def sign(key, secret, method, requestPath, body=""):
-    timestamp = str(int(time.time()))
-    combined = str(timestamp) + method + requestPath + body
+def sign(secret, timestamp, method, requestPath, body=""):
+    combined = timestamp + method + requestPath + body
     
-    signature = hmac.new(bytes(secret, "utf-8"), msg = bytes(combined, "utf-8"), digestmod = hashlib.sha256).hexdigest().upper()
+    signature = hmac.new(secret.encode('utf-8'), combined.encode('utf-8'), digestmod=hashlib.sha256).digest()
 
     return signature
 
