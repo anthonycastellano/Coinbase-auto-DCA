@@ -28,8 +28,11 @@ def trade() -> None:
     product_id: str = os.environ['PRODUCT_ID']
     quote_size: str = os.environ['AMT_USD']
 
+    print(f'Initializing trade for {product_id} with ${quote_size}')
+
     # Request headers
     timestamp: str = str(int(time.time()))
+    print('Creating auth headers...')
     sig: bytes = sign(api_secret, timestamp, 'POST', ENDPOINT_URL + API_RESOURCE)
     headers: dict = {
         'accept': 'application/json',
@@ -49,12 +52,13 @@ def trade() -> None:
             }
         }
     }
+    print('Creating order...')
     res: requests.Response = requests.post(BASE_URL + ENDPOINT_URL + API_RESOURCE, headers = headers, data = json.dumps(body))
     
     if (res.status_code == 200):
         print(json.dumps(res.json(), indent=2))
     else:
-        print(res.content.decode('utf-8'))
+        print("Error: " + res.content.decode('utf-8'))
 
 if __name__ == '__main__':
     trade()
