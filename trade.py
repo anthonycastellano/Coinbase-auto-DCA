@@ -7,13 +7,13 @@ import hmac
 import hashlib
 
 # Constants
-BASE_URL: str = 'https://coinbase.com'
+BASE_URL: str = 'https://api.coinbase.com'
 ENDPOINT_URL: str = '/api/v3/brokerage'
 API_RESOURCE: str = '/orders'
 
 # Create signature for Advanced Trade API authentication header
 def sign(secret: str, timestamp: str, method: str, requestPath: str, body: str = '') -> bytes:
-    combined: str = timestamp + method + requestPath + body
+    combined: str = timestamp + method + requestPath.split('?')[0] + body
     
     signature: bytes = hmac.new(secret.encode('utf-8'), combined.encode('utf-8'), digestmod=hashlib.sha256).digest()
 
@@ -30,18 +30,8 @@ def trade() -> None:
 
     print(f'Initializing trade for {product_id} with ${quote_size}')
 
-    # Request headers
+    # Create request body
     timestamp: str = str(int(time.time()))
-    print('Creating auth headers...')
-    sig: bytes = sign(api_secret, timestamp, 'POST', ENDPOINT_URL + API_RESOURCE)
-    headers: dict = {
-        'accept': 'application/json',
-        'CB-ACCESS-KEY': api_key,
-        'CB-ACCESS-SIGN': sig.hex(),
-        'CB-ACCESS-TIMESTAMP': timestamp
-    }
-
-    # Request body
     body: dict = {
         'client_order_id': timestamp,
         'product_id': product_id,
@@ -52,13 +42,26 @@ def trade() -> None:
             }
         }
     }
+
+    # Create request headers
+    print('Creating auth headers...')
+    sig: bytes = sign(api_secret, timestamp, 'POST', ENDPOINT_URL + API_RESOURCE, json.dumps(body))
+    headers: dict = {
+        'Content-Type': 'application/json',
+        'accept': 'application/json',
+        'CB-ACCESS-KEY': api_key,
+        'CB-ACCESS-SIGN': sig.hex(),
+        'CB-ACCESS-TIMESTAMP': timestamp
+    }
+
+    # Create order
     print('Creating order...')
     res: requests.Response = requests.post(BASE_URL + ENDPOINT_URL + API_RESOURCE, headers = headers, data = json.dumps(body))
     
     if (res.status_code == 200):
         print(json.dumps(res.json(), indent=2))
     else:
-        print("Error: " + res.content.decode('utf-8'))
+        print('Error: ' + str(res.status_code) + ' ' + res.content.decode('utf-8'))
 
 if __name__ == '__main__':
     trade()
